@@ -14,15 +14,14 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   try {
     const app = express();
-    const PORT = process.env.PORT || 3000;
+    const PORT = 3000;
     console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 
     // Serve public directory
     app.use(express.static(path.join(__dirname, "public")));
 
     console.log("Connecting to database...");
-    const DB_PATH = process.env.DB_PATH || path.join(__dirname, "ramshika.db");
-    const db = new Database(DB_PATH);
+    const db = new Database("ramshika.db");
     console.log("Database connected.");
 
     // Initialize Database
