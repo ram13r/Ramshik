@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, Plus, Trash2, Edit, X, Save, CheckCircle, Clock, Truck, AlertCircle, Settings as SettingsIcon, Upload, Image, Globe, MapPin, Star, Instagram } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, Plus, Trash2, Edit, X, Save, CheckCircle, Clock, Truck, AlertCircle, Settings as SettingsIcon, Upload, Image, Globe, MapPin, Star, Instagram, Grid } from 'lucide-react';
 import { Product, Category } from '../types';
 import ImageCropper from '../components/ImageCropper';
 
@@ -16,6 +16,8 @@ export default function AdminDashboard() {
   
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
   const [croppingImage, setCroppingImage] = useState<{
     src: string;
     type: 'product' | 'logo' | 'slide' | 'additional' | 'upi_qr' | 'testimonial_avatar' | 'category_image';
@@ -100,7 +102,7 @@ export default function AdminDashboard() {
     return url;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'logo' | 'slide' | 'additional' | 'video' | 'upi_qr' | 'testimonial_avatar', index?: number) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'logo' | 'slide' | 'additional' | 'video' | 'upi_qr' | 'testimonial_avatar' | 'category_image', index?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -118,6 +120,7 @@ export default function AdminDashboard() {
       if (type === 'product' || type === 'additional') aspect = 3/4;
       if (type === 'slide') aspect = 16/9;
       if (type === 'logo') aspect = 1;
+      if (type === 'category_image') aspect = 4/3;
 
       setCroppingImage({
         src: base64String,
@@ -149,6 +152,8 @@ export default function AdminDashboard() {
       setSettings({ ...settings, upi_qr_code: croppedImage });
     } else if (type === 'testimonial_avatar' && typeof index === 'number') {
       updateTestimonial(index, 'avatar', croppedImage);
+    } else if (type === 'category_image') {
+      setEditingCategory({ ...editingCategory, image_url: croppedImage });
     }
 
     setCroppingImage(null);
@@ -227,6 +232,41 @@ export default function AdminDashboard() {
     });
   };
 
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingCategory?.id ? 'PUT' : 'POST';
+    const url = editingCategory?.id ? `/api/categories/${editingCategory.id}` : '/api/categories';
+    
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editingCategory)
+    });
+
+    if (res.ok) {
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      fetchData();
+      setNotification({ message: `Category ${editingCategory?.id ? 'updated' : 'created'} successfully`, type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    setConfirmModal({
+      message: 'Are you sure you want to delete this category?',
+      onConfirm: async () => {
+        const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          fetchData();
+          setNotification({ message: 'Category deleted successfully', type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
+        }
+        setConfirmModal(null);
+      }
+    });
+  };
+
   const handleUpdateOrderStatus = async (orderId: number, status: string) => {
     const res = await fetch(`/api/admin/orders/${orderId}`, {
       method: 'PUT',
@@ -282,6 +322,13 @@ export default function AdminDashboard() {
           >
             <Users size={20} />
             <span>Customers</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('categories')}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'categories' ? 'bg-brand-pink text-brand-deep-pink font-bold' : 'hover:bg-slate-50'}`}
+          >
+            <Grid size={20} />
+            <span>Categories</span>
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
@@ -516,6 +563,54 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'categories' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-serif font-bold">Manage Categories</h1>
+              <button 
+                onClick={() => { setEditingCategory({}); setIsCategoryModalOpen(true); }}
+                className="gold-button flex items-center space-x-2"
+              >
+                <Plus size={20} />
+                <span>Add Category</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
+              {categories.map(c => (
+                <div key={c.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group">
+                  <div className="aspect-[4/3] relative bg-slate-100">
+                    {c.image_url ? (
+                      <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <Image size={32} />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => { setEditingCategory(c); setIsCategoryModalOpen(true); }}
+                        className="p-2 bg-white text-blue-500 rounded-lg shadow hover:bg-blue-50"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteCategory(c.id)}
+                        className="p-2 bg-white text-red-500 rounded-lg shadow hover:bg-red-50"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-brand-pink border-t border-brand-pink/20">
+                    <h3 className="text-center font-bold text-brand-deep-pink tracking-wide">{c.name}</h3>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="space-y-10 max-w-4xl">
             <h1 className="text-3xl font-serif font-bold">Site Settings</h1>
@@ -971,7 +1066,7 @@ export default function AdminDashboard() {
                       className="w-full border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 ring-brand-gold outline-none"
                     >
                       <option value="">Select Category</option>
-                      {categories.filter(c => c.parent_id !== null).map(c => (
+                      {categories.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -1182,6 +1277,86 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      {/* Category Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-white px-8 py-6 border-b border-slate-100 flex justify-between items-center z-10">
+              <h2 className="text-2xl font-serif font-bold">{editingCategory?.id ? 'Edit Category' : 'Add New Category'}</h2>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveCategory} className="p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-bold mb-2">Category Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editingCategory?.name || ''}
+                  onChange={e => setEditingCategory({...editingCategory, name: e.target.value})}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 ring-brand-gold outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-2">Parent Category (Optional)</label>
+                <select 
+                  value={editingCategory?.parent_id || ''}
+                  onChange={e => setEditingCategory({...editingCategory, parent_id: e.target.value ? parseInt(e.target.value) : undefined})}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 ring-brand-gold outline-none"
+                >
+                  <option value="">None (Top Level)</option>
+                  {categories.filter(c => c.id !== editingCategory?.id).map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-2">Category Image (Required for display cards)</label>
+                <div className="flex items-center space-x-4">
+                  {editingCategory?.image_url ? (
+                    <img src={editingCategory.image_url} alt="Category" className="w-16 h-16 rounded-xl object-cover border border-slate-200" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200"><Image size={24} className="text-slate-400" /></div>
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <input 
+                      type="text" 
+                      placeholder="Image URL"
+                      value={editingCategory?.image_url || ''}
+                      onChange={e => setEditingCategory({...editingCategory, image_url: cleanImageUrl(e.target.value)})}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 ring-brand-gold outline-none"
+                    />
+                    <label className="flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-bold">
+                      <Upload size={14} />
+                      <span>Upload Image</span>
+                      <input type="file" className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'category_image')} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="px-6 py-2 border border-slate-200 rounded-full font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="pink-button flex items-center space-x-2"
+                >
+                  <Save size={18} />
+                  <span>Save Category</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {croppingImage && (
         <ImageCropper
           image={croppingImage.src}

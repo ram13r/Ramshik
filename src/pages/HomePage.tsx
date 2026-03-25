@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Helmet } from 'react-helmet-async';
-import { Product } from '../types';
+import { Product, Category } from '../types';
 import ProductCard from '../components/ProductCard';
 import { ArrowRight, Star, ShieldCheck, Truck, RotateCcw, Headphones, PhoneCall, Users, ShoppingBag, MapPin, Quote, Instagram } from 'lucide-react';
 import InstagramFeed from '../components/InstagramFeed';
@@ -9,6 +9,7 @@ import InstagramFeed from '../components/InstagramFeed';
 export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (page: string) => void, onProductClick: (id: number) => void }) {
   const [featured, setFeatured] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeArrivalCategory, setActiveArrivalCategory] = useState('Sarees');
   const [settings, setSettings] = useState<any>({});
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -16,9 +17,11 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
   useEffect(() => {
     Promise.all([
       fetch('/api/products/featured').then(res => res.json()),
-      fetch('/api/settings').then(res => res.json())
-    ]).then(([featuredData, settingsData]) => {
+      fetch('/api/settings').then(res => res.json()),
+      fetch('/api/categories').then(res => res.json())
+    ]).then(([featuredData, settingsData, categoriesData]) => {
       setFeatured(featuredData);
+      setCategories(categoriesData);
       
       if (settingsData.hero_slides && typeof settingsData.hero_slides === 'string') {
         try {
@@ -230,30 +233,32 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
       </section>
 
       {/* Categories Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div 
-            className="relative h-96 rounded-3xl overflow-hidden group cursor-pointer"
-            onClick={() => onNavigate('category-sarees')}
-          >
-            <img src="https://images.unsplash.com/photo-1610030469668-935142b96fe4?auto=format&fit=crop&w=800&q=80" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Sarees" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-              <h3 className="text-4xl font-serif font-bold mb-2">The Saree Edit</h3>
-              <p className="tracking-widest uppercase text-sm">Shop Now</p>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-black">Shop by Category</h2>
+        </div>
+        <div
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}
+        >
+          {categories.filter(c => c.image_url).map(cat => (
+            <div 
+              key={cat.id}
+              onClick={() => onNavigate(`category-${encodeURIComponent(cat.name)}`)}
+              className="relative h-80 rounded-3xl overflow-hidden group cursor-pointer"
+            >
+              <img 
+                src={cat.image_url!} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                alt={cat.name} 
+                referrerPolicy="no-referrer" 
+              />
+              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <h3 className="text-3xl font-serif font-bold mb-2 drop-shadow-lg">{cat.name}</h3>
+                <p className="tracking-widest uppercase text-sm font-medium opacity-90">Shop Now →</p>
+              </div>
             </div>
-          </div>
-          <div 
-            className="relative h-96 rounded-3xl overflow-hidden group cursor-pointer"
-            onClick={() => onNavigate('category-jewellery')}
-          >
-            <img src="https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?auto=format&fit=crop&w=800&q=80" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Jewellery" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-              <h3 className="text-4xl font-serif font-bold mb-2">Artisanal Jewellery</h3>
-              <p className="tracking-widest uppercase text-sm">Shop Now</p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 

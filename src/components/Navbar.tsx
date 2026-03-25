@@ -15,7 +15,12 @@ export default function Navbar({ onNavigate }: { onNavigate: (page: string) => v
   useEffect(() => {
     fetch('/api/settings')
       .then(res => res.json())
-      .then(setSettings);
+      .then(data => {
+        if (data.arrival_categories && typeof data.arrival_categories === 'string') {
+          try { data.arrival_categories = JSON.parse(data.arrival_categories); } catch (e) {}
+        }
+        setSettings(data);
+      });
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -73,8 +78,18 @@ export default function Navbar({ onNavigate }: { onNavigate: (page: string) => v
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-8">
             <button onClick={() => onNavigate('home')} className="text-sm font-medium hover:text-brand-gold transition-colors">HOME</button>
-            <button onClick={() => onNavigate('category-sarees')} className="text-sm font-medium hover:text-brand-gold transition-colors">SAREES</button>
-            <button onClick={() => onNavigate('category-jewellery')} className="text-sm font-medium hover:text-brand-gold transition-colors">JEWELLERY</button>
+            {(settings.arrival_categories || [
+              { id: 'Sarees', label: 'SAREES' },
+              { id: 'Artificial Jewellery', label: 'JEWELLERY' }
+            ]).map((cat: any) => (
+              <button 
+                key={cat.id} 
+                onClick={() => onNavigate(`category-${cat.id}`)} 
+                className="text-sm font-medium hover:text-brand-gold transition-colors uppercase"
+              >
+                {cat.label}
+              </button>
+            ))}
             <button onClick={() => onNavigate('about')} className="text-sm font-medium hover:text-brand-gold transition-colors">ABOUT</button>
             <button onClick={() => onNavigate('contact')} className="text-sm font-medium hover:text-brand-gold transition-colors">CONTACT</button>
             {user?.role === 'admin' && (
@@ -150,8 +165,18 @@ export default function Navbar({ onNavigate }: { onNavigate: (page: string) => v
       {isMenuOpen && (
         <div className="md:hidden bg-white border-b border-black/5 px-4 py-6 space-y-4">
           <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-serif">Home</button>
-          <button onClick={() => { onNavigate('category-sarees'); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-serif">Sarees</button>
-          <button onClick={() => { onNavigate('category-jewellery'); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-serif">Jewellery</button>
+          {(settings.arrival_categories || [
+            { id: 'Sarees', label: 'Sarees' },
+            { id: 'Artificial Jewellery', label: 'Jewellery' }
+          ]).map((cat: any) => (
+            <button 
+              key={cat.id} 
+              onClick={() => { onNavigate(`category-${cat.id}`); setIsMenuOpen(false); }} 
+              className="block w-full text-left text-lg font-serif capitalize"
+            >
+              {cat.label.toLowerCase()}
+            </button>
+          ))}
           <button onClick={() => { onNavigate('about'); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-serif">About Us</button>
           <button onClick={() => { onNavigate('contact'); setIsMenuOpen(false); }} className="block w-full text-left text-lg font-serif">Contact Us</button>
           {user?.role === 'admin' && (

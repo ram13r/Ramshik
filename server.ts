@@ -37,6 +37,7 @@ async function startServer() {
       CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
+        image_url TEXT,
         parent_id INTEGER,
         FOREIGN KEY(parent_id) REFERENCES categories(id)
       );
@@ -107,20 +108,16 @@ async function startServer() {
 
     // Seed Categories
     const catCount = db.prepare("SELECT COUNT(*) as count FROM categories").get() as { count: number };
+    
+    try { db.exec("ALTER TABLE categories ADD COLUMN image_url TEXT"); } catch (e) {}
+
     if (catCount.count === 0) {
-      const insertCat = db.prepare("INSERT INTO categories (name, parent_id) VALUES (?, ?)");
-      const sareeId = insertCat.run("Sarees", null).lastInsertRowid;
-      const jewelleryId = insertCat.run("Artificial Jewellery", null).lastInsertRowid;
-      
-      insertCat.run("Silk Sarees", sareeId);
-      insertCat.run("Cotton Sarees", sareeId);
-      insertCat.run("Party Wear Sarees", sareeId);
-      insertCat.run("Wedding Sarees", sareeId);
-      
-      insertCat.run("Earrings", jewelleryId);
-      insertCat.run("Necklace Sets", jewelleryId);
-      insertCat.run("Bangles", jewelleryId);
-      insertCat.run("Bridal Jewellery", jewelleryId);
+      const insertCat = db.prepare("INSERT INTO categories (name, parent_id, image_url) VALUES (?, ?, ?)");
+      insertCat.run("Sarees", null, "https://images.unsplash.com/photo-1610030469668-935142b96fe4?auto=format&fit=crop&w=400&q=80");
+      insertCat.run("Artificial Jewellery", null, "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?auto=format&fit=crop&w=400&q=80");
+    } else {
+      // Remove orphan sub-categories that have a parent_id (keep only top-level)
+      try { db.prepare("DELETE FROM categories WHERE parent_id IS NOT NULL").run(); } catch (e) {}
     }
 
     // Seed Products
@@ -145,8 +142,16 @@ async function startServer() {
       const categories = db.prepare("SELECT id, name FROM categories").all() as any[];
       
       seedProducts.forEach((p, index) => {
-        const cat = categories.find(c => c.name === p.category);
-        const catId = cat ? cat.id : 1;
+        let catId = 1;
+        const isJewellery = ['Earrings', 'Necklace Sets', 'Bangles', 'Bridal Jewellery'].includes(p.category) || p.category.includes('Jewellery');
+        
+        if (isJewellery) {
+          const jewCat = categories.find((c: any) => c.name === 'Artificial Jewellery');
+          if (jewCat) catId = jewCat.id;
+        } else {
+          const sareeCat = categories.find((c: any) => c.name === 'Sarees');
+          if (sareeCat) catId = sareeCat.id;
+        }
         
         const imageUrl = `https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80`;
         if (p.category.includes('Jewellery')) {
@@ -316,6 +321,24 @@ async function startServer() {
     app.get("/api/categories", (req, res) => {
       const categories = db.prepare("SELECT * FROM categories").all();
       res.json(categories);
+    });
+
+    app.post("/api/categories", (req, res) => {
+      const { name, parent_id, image_url } = req.body;
+      const result = db.prepare("INSERT INTO categories (name, parent_id, image_url) VALUES (?, ?, ?)").run(name, parent_id || null, image_url || null);
+      res.json({ id: result.lastInsertRowid });
+    });
+
+    app.put("/api/categories/:id", (req, res) => {
+      const { name, parent_id, image_url } = req.body;
+      db.prepare("UPDATE categories SET name = ?, parent_id = ?, image_url = ? WHERE id = ?").run(name, parent_id || null, image_url || null, req.params.id);
+      res.json({ success: true });
+    });
+
+    app.delete("/api/categories/:id", (req, res) => {
+      db.prepare("UPDATE categories SET parent_id = NULL WHERE parent_id = ?").run(req.params.id);
+      db.prepare("DELETE FROM categories WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
     });
 
     app.post("/api/auth/login", (req, res) => {
