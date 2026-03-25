@@ -14,6 +14,25 @@ export default function CheckoutPage({ onNavigate }: { onNavigate: (page: string
   const { cart, total, clearCart } = useCart();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  
+  // Guard: Protect checkout logic requiring sign in
+  if (!user && step !== 3 && step !== 4) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <div className="w-24 h-24 bg-brand-gold/10 text-brand-gold rounded-full flex items-center justify-center mx-auto mb-6">
+          <Lock size={48} />
+        </div>
+        <h2 className="text-4xl font-serif font-bold mb-4">Login Required</h2>
+        <p className="text-slate-500 mb-8 max-w-lg mx-auto">Please sign in or create an account to securely process your payment and track your order.</p>
+        <button 
+          onClick={() => onNavigate('login')}
+          className="gold-button"
+        >
+          Sign In / Register
+        </button>
+      </div>
+    );
+  }
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [settings, setSettings] = useState<any>(null);
@@ -107,7 +126,7 @@ export default function CheckoutPage({ onNavigate }: { onNavigate: (page: string
           currency: razorpayOrder.currency,
           name: settings?.site_name || "Ramshika",
           description: "Purchase from Ramshika",
-          image: settings?.site_logo || "https://i.ibb.co/v6Xz9zM/ramshika-logo.png",
+          image: settings?.site_logo || "https://ui-avatars.com/api/?name=Ramshika&background=EAB308&color=fff&size=512",
           order_id: razorpayOrder.id,
           handler: async function (response: any) {
             // 3. Verify payment on backend

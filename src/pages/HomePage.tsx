@@ -86,7 +86,7 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
             "@context": "https://schema.org",
             "@type": "Store",
             "name": "Ramshika",
-            "image": "https://i.ibb.co/v6Xz9zM/ramshika-logo.png",
+            "image": "https://ui-avatars.com/api/?name=Ramshika&background=EAB308&color=fff&size=512",
             "description": "Premium Hand-Woven Sarees & Exquisite Artificial Jewellery",
             "address": {
               "@type": "PostalAddress",

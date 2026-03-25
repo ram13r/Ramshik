@@ -204,7 +204,7 @@ async function startServer() {
         { key: 'payment_card', value: 'true' },
         { key: 'site_name', value: 'Ramshika' },
         { key: 'site_tagline', value: 'Grace in Every Saree' },
-        { key: 'site_logo', value: 'https://i.ibb.co/v6Xz9zM/ramshika-logo.png' },
+        { key: 'site_logo', value: 'https://ui-avatars.com/api/?name=Ramshika&background=EAB308&color=fff&size=512' },
         { key: 'logo_size', value: 'medium' },
         { key: 'hero_title', value: 'Timeless Elegance Redefined.' },
         { key: 'hero_subtitle', value: 'Discover our curated collection of hand-woven sarees and exquisite artificial jewellery designed for the modern Indian woman.' },
