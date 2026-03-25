@@ -113,8 +113,8 @@ async function startServer() {
 
     if (catCount.count === 0) {
       const insertCat = db.prepare("INSERT INTO categories (name, parent_id, image_url) VALUES (?, ?, ?)");
-      insertCat.run("Sarees", null, "https://images.unsplash.com/photo-1610030469668-935142b96fe4?auto=format&fit=crop&w=400&q=80");
-      insertCat.run("Artificial Jewellery", null, "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?auto=format&fit=crop&w=400&q=80");
+      insertCat.run("Sarees", null, "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80");
+      insertCat.run("Artificial Jewellery", null, "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80");
     } else {
       // Remove orphan sub-categories that have a parent_id (keep only top-level)
       try { db.prepare("DELETE FROM categories WHERE parent_id IS NOT NULL").run(); } catch (e) {}
@@ -154,49 +154,43 @@ async function startServer() {
         }
         
         const imageUrl = `https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80`;
-        if (p.category.includes('Jewellery')) {
-          const jewelleryImages = [
-            'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80'
-          ];
-          const jewelleryUrl = jewelleryImages[index % jewelleryImages.length];
-          insertProd.run(
-            p.name,
-            p.description,
-            p.price,
-            p.discountPrice,
-            jewelleryUrl,
-            catId,
-            index < 8 ? 1 : 0,
-            50,
-            JSON.stringify(p.features),
-            JSON.stringify(p.tags),
-            p.imagePrompt
-          );
-        } else {
-          const sareeImages = [
-            'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1610030469668-935142b96fe4?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80'
-          ];
-          const sareeUrl = sareeImages[index % sareeImages.length];
-          insertProd.run(
-            p.name,
-            p.description,
-            p.price,
-            p.discountPrice,
-            sareeUrl,
-            catId,
-            index < 8 ? 1 : 0,
-            50,
-            JSON.stringify(p.features),
-            JSON.stringify(p.tags),
-            p.imagePrompt
-          );
-        }
+        // Jewellery images - rings, necklaces, bangles
+        const jewelleryImages = [
+          'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=800&q=80'
+        ];
+        // Saree images - Indian women in colourful sarees
+        const sareeImages = [
+          'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1610030469668-935142b96fe4?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1594938298603-c8148c4b7a5b?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1602910344008-22f323cc1817?auto=format&fit=crop&w=800&q=80'
+        ];
+
+        const isJewelleryProduct = ['Earrings', 'Necklace Sets', 'Bangles', 'Bridal Jewellery'].includes(p.category) || p.category.includes('Jewellery');
+        const productImageUrl = isJewelleryProduct
+          ? jewelleryImages[index % jewelleryImages.length]
+          : sareeImages[index % sareeImages.length];
+
+        insertProd.run(
+          p.name,
+          p.description,
+          p.price,
+          p.discountPrice,
+          productImageUrl,
+          catId,
+          index < 8 ? 1 : 0,
+          50,
+          JSON.stringify(p.features),
+          JSON.stringify(p.tags),
+          p.imagePrompt
+        );
       });
     }
 
