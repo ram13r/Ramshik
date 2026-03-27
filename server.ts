@@ -222,6 +222,10 @@ async function startServer() {
           { name: 'Anjali Sharma', role: 'Fashion Blogger', content: 'The quality of the Banarasi silk saree I bought is exceptional. The colors are even more vibrant in person!', rating: 5, avatar: 'https://i.pravatar.cc/150?u=anjali' },
           { name: 'Priya Patel', role: 'Loyal Customer', content: 'Ramshika has become my go-to for artificial jewellery. Their Kundan sets look so real and elegant.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=priya' },
           { name: 'Meera Reddy', role: 'Bride-to-be', content: 'Found my dream wedding reception saree here. The customer service was so helpful in choosing the right fabric.', rating: 4, avatar: 'https://i.pravatar.cc/150?u=meera' }
+        ]) },
+        { key: 'product_offers', value: JSON.stringify([
+          "Free Shipping Above ₹599",
+          "Get ₹100 off on shopping above ₹1499"
         ]) }
       ];
 
@@ -240,6 +244,10 @@ async function startServer() {
           { name: 'Anjali Sharma', role: 'Fashion Blogger', content: 'The quality of the Banarasi silk saree I bought is exceptional. The colors are even more vibrant in person!', rating: 5, avatar: 'https://i.pravatar.cc/150?u=anjali' },
           { name: 'Priya Patel', role: 'Loyal Customer', content: 'Ramshika has become my go-to for artificial jewellery. Their Kundan sets look so real and elegant.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=priya' },
           { name: 'Meera Reddy', role: 'Bride-to-be', content: 'Found my dream wedding reception saree here. The customer service was so helpful in choosing the right fabric.', rating: 4, avatar: 'https://i.pravatar.cc/150?u=meera' }
+        ]) },
+        { key: 'product_offers', value: JSON.stringify([
+          "Free Shipping Above ₹599",
+          "Get ₹100 off on shopping above ₹1499"
         ]) }
       ];
       const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
@@ -298,7 +306,12 @@ async function startServer() {
     });
 
     app.get("/api/products/:id", (req, res) => {
-      const product = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id) as any;
+      const product = db.prepare(`
+        SELECT p.*, c.name as category_name 
+        FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.id 
+        WHERE p.id = ?
+      `).get(req.params.id) as any;
       if (product) {
         const parsedProduct = {
           ...product,

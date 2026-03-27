@@ -44,7 +44,7 @@ export default function AdminDashboard() {
     setCategories(categoriesRes);
     
     // Parse JSON settings
-    const jsonFields = ['hero_slides', 'site_stats', 'site_testimonials', 'arrival_categories'];
+    const jsonFields = ['hero_slides', 'site_stats', 'site_testimonials', 'arrival_categories', 'product_offers'];
     jsonFields.forEach(field => {
       if (settingsRes[field] && typeof settingsRes[field] === 'string') {
         try {
@@ -68,7 +68,8 @@ export default function AdminDashboard() {
       hero_slides: JSON.stringify(settings.hero_slides),
       site_stats: JSON.stringify(settings.site_stats),
       site_testimonials: JSON.stringify(settings.site_testimonials),
-      arrival_categories: JSON.stringify(settings.arrival_categories)
+      arrival_categories: JSON.stringify(settings.arrival_categories),
+      product_offers: JSON.stringify(settings.product_offers)
     };
     const res = await fetch('/api/settings', {
       method: 'PUT',
@@ -195,6 +196,22 @@ export default function AdminDashboard() {
   const removeArrivalCategory = (index: number) => {
     const newCats = settings.arrival_categories.filter((_: any, i: number) => i !== index);
     setSettings({ ...settings, arrival_categories: newCats });
+  };
+
+  const updateProductOffer = (index: number, value: string) => {
+    const newOffers = [...(settings.product_offers || [])];
+    newOffers[index] = value;
+    setSettings({ ...settings, product_offers: newOffers });
+  };
+
+  const addProductOffer = () => {
+    const newOffers = [...(settings.product_offers || []), ''];
+    setSettings({ ...settings, product_offers: newOffers });
+  };
+
+  const removeProductOffer = (index: number) => {
+    const newOffers = settings.product_offers.filter((_: any, i: number) => i !== index);
+    setSettings({ ...settings, product_offers: newOffers });
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -831,6 +848,44 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => removeArrivalCategory(idx)}
                             className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-xl font-serif font-bold">Product Offers</h3>
+                      <button 
+                        type="button"
+                        onClick={addProductOffer}
+                        className="text-xs font-bold text-brand-deep-pink hover:underline flex items-center space-x-1"
+                      >
+                        <Plus size={14} />
+                        <span>Add Offer</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500 italic">These offers will be displayed on the product details page below the 'Add to Cart' button.</p>
+                    <div className="space-y-4">
+                      {(settings.product_offers || []).map((offer: string, idx: number) => (
+                        <div key={idx} className="flex items-center space-x-4 p-4 bg-slate-50 rounded-2xl group">
+                          <div className="flex-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Offer Text</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Free Shipping Above ₹599"
+                              value={offer}
+                              onChange={e => updateProductOffer(idx, e.target.value)}
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 ring-brand-gold outline-none"
+                            />
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => removeProductOffer(idx)}
+                            className="p-2 text-slate-300 hover:text-red-500 transition-colors mt-4"
                           >
                             <Trash2 size={18} />
                           </button>

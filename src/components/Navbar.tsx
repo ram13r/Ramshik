@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { cart } = useCart();
+  const { cart, setIsCartOpen } = useCart();
   const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -147,7 +147,7 @@ export default function Navbar({ onNavigate }: { onNavigate: (page: string) => v
             </button>
             
             <button 
-              onClick={() => onNavigate('cart')}
+              onClick={() => setIsCartOpen(true)}
               className="p-2 hover:text-brand-gold transition-colors relative"
             >
               <ShoppingBag size={20} />

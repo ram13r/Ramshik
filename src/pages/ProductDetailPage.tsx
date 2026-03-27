@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
-import { Star, ShoppingBag, Heart, Share2, Truck, ShieldCheck, RotateCcw, Minus, Plus, Percent, TrendingDown } from 'lucide-react';
+import { Star, ShoppingBag, Heart, Share2, Truck, ShieldCheck, RotateCcw, Minus, Plus, Percent, TrendingDown, Package } from 'lucide-react';
 
 export default function ProductDetailPage({ productId }: { productId: number }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -11,14 +11,29 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
 
+  const [productOffers, setProductOffers] = useState<string[]>([]);
+
   useEffect(() => {
-    fetch(`/api/products/${productId}`)
-      .then(res => res.json())
-      .then(data => {
-        setProduct(data);
-        setActiveImage(data.image_url);
-        setLoading(false);
-      });
+    Promise.all([
+      fetch(`/api/products/${productId}`).then(res => res.json()),
+      fetch('/api/settings').then(res => res.json())
+    ]).then(([productData, settingsData]) => {
+      setProduct(productData);
+      setActiveImage(productData.image_url);
+      
+      try {
+        if (settingsData.product_offers) {
+          const parsed = typeof settingsData.product_offers === 'string' 
+            ? JSON.parse(settingsData.product_offers) 
+            : settingsData.product_offers;
+          setProductOffers(parsed);
+        }
+      } catch (e) {
+        console.error('Failed to parse product offers', e);
+      }
+      
+      setLoading(false);
+    });
   }, [productId]);
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-gold"></div></div>;
@@ -135,32 +150,18 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
           </div>
 
           {/* Offers Section */}
-          <div className="border border-[#F472B6] rounded-2xl p-4 bg-white space-y-3">
-            <div className="bg-[#FDF2F2] p-3 rounded-xl flex items-center space-x-3">
-              <div className="bg-[#F472B6] text-white p-1.5 rounded-full">
-                <Percent size={14} />
-              </div>
-              <span className="text-sm font-medium text-slate-800">Free Shipping Above ₹599</span>
+          {productOffers.length > 0 && (
+            <div className="border border-[#F472B6] rounded-2xl p-4 bg-white space-y-3">
+              {productOffers.map((offer, idx) => (
+                <div key={idx} className="bg-[#FDF2F2] p-3 rounded-xl flex items-center space-x-3">
+                  <div className="bg-[#F472B6] text-white p-1.5 rounded-full flex-shrink-0">
+                    <Percent size={14} />
+                  </div>
+                  <span className="text-sm font-medium text-slate-800">{offer}</span>
+                </div>
+              ))}
             </div>
-            <div className="bg-[#FDF2F2] p-3 rounded-xl flex items-center space-x-3">
-              <div className="bg-[#F472B6] text-white p-1.5 rounded-full">
-                <Percent size={14} />
-              </div>
-              <span className="text-sm font-medium text-slate-800">Free gift on shopping above ₹699</span>
-            </div>
-            <div className="bg-[#FDF2F2] p-3 rounded-xl flex items-center space-x-3">
-              <div className="bg-[#F472B6] text-white p-1.5 rounded-full">
-                <Percent size={14} />
-              </div>
-              <span className="text-sm font-medium text-slate-800">Free organiser on shopping above ₹1199</span>
-            </div>
-            <div className="bg-[#FDF2F2] p-3 rounded-xl flex items-center space-x-3">
-              <div className="bg-[#F472B6] text-white p-1.5 rounded-full">
-                <Percent size={14} />
-              </div>
-              <span className="text-sm font-medium text-slate-800">Get ₹100 off on shopping above ₹1499</span>
-            </div>
-          </div>
+          )}
 
           <div className="pt-4">
             <p className="text-slate-600 leading-relaxed">
@@ -168,29 +169,50 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-100">
-            <div className="flex items-center space-x-3">
-              <Truck className="text-brand-gold" size={24} />
-              <div className="text-xs">
-                <p className="font-bold">Free Delivery</p>
-                <p className="text-slate-500">On orders over ₹2000</p>
+          {product.category_name?.toLowerCase().includes('jewellery') || product.category_id === 2 ? (
+            <div className="grid grid-cols-2 gap-y-6 gap-x-6 pt-8 border-t border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="border border-slate-400 rounded-full p-1 opacity-80"><Percent size={18} /></div>
+                <span className="text-sm text-slate-800 tracking-wide font-medium">100% Purchase Protection</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="border border-slate-400 rounded-full p-1 opacity-80"><RotateCcw size={18} /></div>
+                <span className="text-sm text-slate-800 tracking-wide leading-tight font-medium">This product is not returnable</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="border border-slate-400 rounded-full p-1 opacity-80"><Star size={18} /></div>
+                <span className="text-sm text-slate-800 tracking-wide font-medium">Assured Quality</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="border border-slate-400 rounded-full p-1 opacity-80"><Package size={18} /></div>
+                <span className="text-sm text-slate-800 tracking-wide font-medium">Free shipping*</span>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <RotateCcw className="text-brand-gold" size={24} />
-              <div className="text-xs">
-                <p className="font-bold">7 Days Return</p>
-                <p className="text-slate-500">Easy exchange policy</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-100">
+              <div className="flex items-center space-x-3">
+                <Truck className="text-brand-gold" size={24} />
+                <div className="text-xs">
+                  <p className="font-bold">Free Delivery</p>
+                  <p className="text-slate-500">On orders over ₹2000</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <RotateCcw className="text-brand-gold" size={24} />
+                <div className="text-xs">
+                  <p className="font-bold">7 Days Return</p>
+                  <p className="text-slate-500">Easy exchange policy</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <ShieldCheck className="text-brand-gold" size={24} />
+                <div className="text-xs">
+                  <p className="font-bold">Secure Checkout</p>
+                  <p className="text-slate-500">UPI, Cards, COD</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <ShieldCheck className="text-brand-gold" size={24} />
-              <div className="text-xs">
-                <p className="font-bold">Secure Checkout</p>
-                <p className="text-slate-500">UPI, Cards, COD</p>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

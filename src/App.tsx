@@ -13,6 +13,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import StaticPage from './pages/StaticPage';
 import ContactPage from './pages/ContactPage';
 import ChatWidget from './components/ChatWidget';
+import CartDrawer from './components/CartDrawer';
 import { Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 
 function AppContent() {
@@ -212,6 +213,7 @@ function AppContent() {
             </div>
           </div>
         </footer>
+        <CartDrawer onNavigate={navigate} />
         <ChatWidget />
       </div>
     );
