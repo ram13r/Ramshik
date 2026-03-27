@@ -21,7 +21,7 @@ export default function LoginPage({ onNavigate }: { onNavigate: (page: string) =
       });
       const data = await res.json();
       if (res.ok) {
-        login(data);
+        login(data.token, data.user);
         onNavigate('home');
       } else {
         setError(data.error);

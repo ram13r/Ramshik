@@ -10,7 +10,22 @@ export default function UserDashboard({ onNavigate }: { onNavigate: (page: strin
     if (user) {
       fetch(`/api/orders/user/${user.id}`)
         .then(res => res.json())
-        .then(setOrders);
+        .then(data => {
+          if (Array.isArray(data)) {
+            setOrders(data);
+          } else {
+            console.error('Failed to fetch orders:', data);
+            setOrders([]);
+            if (data.error === 'Unauthorized' || data.error === 'Invalid or expired token') {
+              logout();
+              onNavigate('login');
+            }
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching orders:', err);
+          setOrders([]);
+        });
     }
   }, [user]);
 

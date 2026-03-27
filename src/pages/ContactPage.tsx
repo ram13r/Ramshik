@@ -11,6 +11,13 @@ export default function ContactPage() {
     message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [settings, setSettings] = useState<any>({});
+
+  React.useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setSettings(data));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +66,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="font-bold text-sm">Call Us</p>
-                    <p className="text-slate-500 text-sm">+91 98765 43210</p>
-                    <p className="text-xs text-slate-400 mt-1">Mon-Sat: 10:00 AM - 7:00 PM</p>
+                    <p className="text-slate-500 text-sm">{settings.support_phone || '+91 98765 43210'}</p>
+                    <p className="text-xs text-slate-400 mt-1">{settings.support_timing || 'Mon-Sat: 10:00 AM - 7:00 PM'}</p>
                   </div>
                 </div>
 
@@ -70,8 +77,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="font-bold text-sm">Email Us</p>
-                    <p className="text-slate-500 text-sm">support@ramshika.com</p>
-                    <p className="text-xs text-slate-400 mt-1">We usually reply within 24 hours</p>
+                    <p className="text-slate-500 text-sm">{settings.support_email || 'support@ramshika.com'}</p>
+                    <p className="text-xs text-slate-400 mt-1">{settings.support_email_desc || 'We usually reply within 24 hours'}</p>
                   </div>
                 </div>
 
@@ -81,8 +88,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="font-bold text-sm">Visit Us</p>
-                    <p className="text-slate-500 text-sm">123, Fashion Street, Jaipur</p>
-                    <p className="text-xs text-slate-400 mt-1">Rajasthan, India - 302001</p>
+                    <p className="text-slate-500 text-sm">{settings.support_address || '123, Fashion Street, Jaipur'}</p>
+                    <p className="text-xs text-slate-400 mt-1">{settings.support_address_desc || 'Rajasthan, India - 302001'}</p>
                   </div>
                 </div>
               </div>

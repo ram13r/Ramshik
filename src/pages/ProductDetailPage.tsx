@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
-import { Star, ShoppingBag, Heart, Share2, Truck, ShieldCheck, RotateCcw, Minus, Plus, Percent, TrendingDown, Package } from 'lucide-react';
+import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
+import { Star, ShoppingBag, Heart, Share2, Truck, ShieldCheck, RotateCcw, Minus, Plus, Percent, TrendingDown, Package, User } from 'lucide-react';
 
 export default function ProductDetailPage({ productId }: { productId: number }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -10,14 +12,22 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { user, token } = useAuth();
+  
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const [productOffers, setProductOffers] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/products/${productId}`).then(res => res.json()),
-      fetch('/api/settings').then(res => res.json())
-    ]).then(([productData, settingsData]) => {
+      fetch('/api/settings').then(res => res.json()),
+      fetch(`/api/products/${productId}/reviews`).then(res => res.json())
+    ]).then(([productData, settingsData, reviewsData]) => {
       setProduct(productData);
       setActiveImage(productData.image_url);
       
@@ -32,9 +42,34 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
         console.error('Failed to parse product offers', e);
       }
       
+      if (Array.isArray(reviewsData)) {
+        setReviews(reviewsData);
+      }
       setLoading(false);
     });
   }, [productId]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
+      });
+      if (res.ok) {
+        setReviewSubmitted(true);
+        setReviewComment('');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-gold"></div></div>;
   if (!product) return <div className="text-center py-20">Product not found</div>;
@@ -140,12 +175,22 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="flex items-center space-x-4">
             <button 
               onClick={() => addToCart(product, quantity)}
-              className="w-full bg-[#F472B6] hover:bg-[#EC4899] text-white font-bold py-4 rounded-lg transition-all uppercase tracking-wider text-sm active:scale-95"
+              className="flex-1 bg-[#F472B6] hover:bg-[#EC4899] text-white font-bold py-4 rounded-lg transition-all uppercase tracking-wider text-sm active:scale-95"
             >
               ADD TO CART
+            </button>
+            <button
+              onClick={() => isInWishlist(product.id) ? removeFromWishlist(product.id) : addToWishlist(product)}
+              className={`p-4 rounded-lg border-2 transition-all flex items-center justify-center ${
+                isInWishlist(product.id) 
+                  ? 'border-brand-deep-pink bg-brand-pink text-brand-deep-pink' 
+                  : 'border-slate-200 text-slate-400 hover:border-brand-deep-pink hover:text-brand-deep-pink'
+              }`}
+            >
+              <Heart size={24} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
             </button>
           </div>
 
@@ -258,6 +303,90 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
           </div>
         </div>
       )}
+
+      {/* Reviews Section */}
+      <div className="mt-16 pt-12 border-t border-slate-100 mb-20">
+        <h3 className="text-2xl font-serif font-bold mb-8">Customer Reviews</h3>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="space-y-6">
+            {reviews.length === 0 ? (
+              <p className="text-slate-500 italic">No reviews yet. Be the first to review this product!</p>
+            ) : (
+              reviews.map(review => (
+                <div key={review.id} className="bg-slate-50 p-6 rounded-2xl">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold uppercase">
+                      {review.user_name[0]}
+                    </div>
+                    <div>
+                      <p className="font-bold">{review.user_name}</p>
+                      <div className="flex text-[#FFB800]">
+                        {[1,2,3,4,5].map(i => <Star key={i} size={12} fill={i <= review.rating ? "currentColor" : "none"} className={i <= review.rating ? "text-[#FFB800]" : "text-slate-300"} />)}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-slate-700">{review.comment}</p>
+                  <p className="text-xs text-slate-400 mt-3">{new Date(review.created_at).toLocaleDateString()}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div>
+            <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm">
+              <h4 className="text-xl font-serif font-bold mb-6">Write a Review</h4>
+              
+              {!user ? (
+                <div className="text-center p-6 bg-slate-50 rounded-2xl">
+                  <p className="text-slate-600 mb-4">You need to be logged in to write a review.</p>
+                </div>
+              ) : reviewSubmitted ? (
+                <div className="p-6 bg-green-50 text-green-700 rounded-2xl border border-green-200 text-center">
+                  <Star className="inline-block mb-2 text-green-500" size={32} />
+                  <p className="font-bold">Thank you for your review!</p>
+                  <p className="text-sm mt-1">Your review has been submitted and is awaiting approval.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
+                    <div className="flex space-x-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button
+                          type="button"
+                          key={star}
+                          onClick={() => setReviewRating(star)}
+                          className="focus:outline-none"
+                        >
+                          <Star 
+                            size={28} 
+                            fill={star <= reviewRating ? "currentColor" : "none"} 
+                            className={star <= reviewRating ? "text-[#FFB800]" : "text-slate-300"} 
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Comment</label>
+                    <textarea 
+                      required
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 ring-brand-deep-pink min-h-[120px]"
+                      placeholder="What did you like or dislike?"
+                    ></textarea>
+                  </div>
+                  <button type="submit" className="pink-button w-full">
+                    Submit Review
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

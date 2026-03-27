@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Heart, User, Search, Menu, X, Globe } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 
 export default function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { cart, setIsCartOpen } = useCart();
   const { user } = useAuth();
+  const { wishlist } = useWishlist();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,6 +94,7 @@ export default function Navbar({ onNavigate }: { onNavigate: (page: string) => v
             ))}
             <button onClick={() => onNavigate('about')} className="text-sm font-medium hover:text-brand-gold transition-colors">ABOUT</button>
             <button onClick={() => onNavigate('contact')} className="text-sm font-medium hover:text-brand-gold transition-colors">CONTACT</button>
+            <button onClick={() => onNavigate('blog')} className="text-sm font-medium hover:text-brand-gold transition-colors">BLOG</button>
             {user?.role === 'admin' && (
               <button onClick={() => onNavigate('admin')} className="text-sm font-bold text-brand-deep-pink hover:text-brand-gold transition-colors">ADMIN</button>
             )}
@@ -142,8 +145,16 @@ export default function Navbar({ onNavigate }: { onNavigate: (page: string) => v
               {user && <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-white"></span>}
             </button>
             
-            <button className="p-2 hover:text-brand-gold transition-colors">
+            <button 
+              onClick={() => onNavigate('wishlist')}
+              className="p-2 hover:text-brand-gold transition-colors relative"
+            >
               <Heart size={20} />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-brand-deep-pink text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                  {wishlist.length}
+                </span>
+              )}
             </button>
             
             <button 

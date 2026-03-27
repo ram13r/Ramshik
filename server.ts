@@ -6,6 +6,8 @@ import Database from "better-sqlite3";
 import { fileURLToPath } from "url";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { products as seedProducts } from "./src/data/products";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +25,8 @@ async function startServer() {
     console.log("Connecting to database...");
     const db = new Database("ramshika.db");
     console.log("Database connected.");
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'ramshika-super-secret-key';
 
     // Initialize Database
     db.exec(`
@@ -62,6 +66,7 @@ async function startServer() {
 
       -- Add columns if they don't exist (for existing databases)
       PRAGMA table_info(products);
+      PRAGMA table_info(orders);
 
       CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,17 +98,60 @@ async function startServer() {
         key TEXT PRIMARY KEY,
         value TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS wishlists (
+        user_id INTEGER,
+        product_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, product_id),
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(product_id) REFERENCES products(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS reviews (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER,
+        user_id INTEGER,
+        rating INTEGER,
+        comment TEXT,
+        is_approved BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(product_id) REFERENCES products(id),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS blogs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        slug TEXT UNIQUE,
+        content TEXT,
+        image_url TEXT,
+        author TEXT,
+        is_published BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
+    // Ensure role column exists for older users table
+    try {
+      db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+      // If the column was just added, existing users will have role 'user'
+    } catch (e) {}
+
     // Seed Admin User
-    const adminCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number };
-    if (adminCount.count === 0) {
-      db.prepare("INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)").run(
-        'admin@ramshika.com',
-        'admin123',
-        'Ramshika Admin',
-        'admin'
-      );
+    try {
+      const adminCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number };
+      if (adminCount.count === 0) {
+        db.prepare("INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)").run(
+          'admin@ramshika.com',
+          'admin123',
+          'Ramshika Admin',
+          'admin'
+        );
+        console.log("Admin user seeded successfully.");
+      }
+    } catch (e) {
+      console.error("Failed to seed admin user:", e);
     }
 
     // Seed Categories
@@ -129,6 +177,9 @@ async function startServer() {
     } catch (e) {}
     try {
       db.exec("ALTER TABLE products ADD COLUMN videos TEXT");
+    } catch (e) {}
+    try {
+      db.exec("ALTER TABLE orders ADD COLUMN tracking_id TEXT");
     } catch (e) {}
 
     if (prodCount.count < 50) {
@@ -226,7 +277,13 @@ async function startServer() {
         { key: 'product_offers', value: JSON.stringify([
           "Free Shipping Above ₹599",
           "Get ₹100 off on shopping above ₹1499"
-        ]) }
+        ]) },
+        { key: 'support_phone', value: '+91 98765 43210' },
+        { key: 'support_timing', value: 'Mon-Sat: 10:00 AM - 7:00 PM' },
+        { key: 'support_email', value: 'support@ramshika.com' },
+        { key: 'support_email_desc', value: 'We usually reply within 24 hours' },
+        { key: 'support_address', value: '123, Fashion Street, Jaipur' },
+        { key: 'support_address_desc', value: 'Rajasthan, India - 302001' }
       ];
 
       const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
@@ -248,7 +305,13 @@ async function startServer() {
         { key: 'product_offers', value: JSON.stringify([
           "Free Shipping Above ₹599",
           "Get ₹100 off on shopping above ₹1499"
-        ]) }
+        ]) },
+        { key: 'support_phone', value: '+91 98765 43210' },
+        { key: 'support_timing', value: 'Mon-Sat: 10:00 AM - 7:00 PM' },
+        { key: 'support_email', value: 'support@ramshika.com' },
+        { key: 'support_email_desc', value: 'We usually reply within 24 hours' },
+        { key: 'support_address', value: '123, Fashion Street, Jaipur' },
+        { key: 'support_address_desc', value: 'Rajasthan, India - 302001' }
       ];
       const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
       newKeys.forEach(s => insertSetting.run(s.key, s.value));
@@ -263,9 +326,125 @@ async function startServer() {
       key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
     });
 
+    // Auth Middleware
+    const authenticateToken = (req: any, res: any, next: any) => {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (token == null) return res.status(401).json({ error: 'No token provided' });
+
+      jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+        if (err) return res.status(403).json({ error: 'Invalid or expired token' });
+        req.user = user;
+        next();
+      });
+    };
+
     // API Routes
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: new Date().toISOString() });
+    });
+
+    // Blog API
+    app.get("/api/blogs", (req, res) => {
+      const blogs = db.prepare("SELECT * FROM blogs WHERE is_published = 1 ORDER BY created_at DESC").all();
+      res.json(blogs);
+    });
+
+    app.get("/api/blogs/:slug", (req, res) => {
+      const blog = db.prepare("SELECT * FROM blogs WHERE slug = ?").get(req.params.slug);
+      if (blog) res.json(blog);
+      else res.status(404).json({ error: "Blog post not found" });
+    });
+
+    app.post("/api/blogs", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      const { title, slug, content, image_url, author, is_published } = req.body;
+      const finalSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      try {
+        const result = db.prepare(
+          "INSERT INTO blogs (title, slug, content, image_url, author, is_published) VALUES (?, ?, ?, ?, ?, ?)"
+        ).run(title, finalSlug, content, image_url, author, is_published ? 1 : 0);
+        res.json({ success: true, id: result.lastInsertRowid });
+      } catch (err) {
+        res.status(400).json({ error: "Slug already taken or invalid data" });
+      }
+    });
+
+    app.put("/api/blogs/:id", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      const { title, slug, content, image_url, author, is_published } = req.body;
+      const finalSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      try {
+        db.prepare(
+          "UPDATE blogs SET title = ?, slug = ?, content = ?, image_url = ?, author = ?, is_published = ? WHERE id = ?"
+        ).run(title, finalSlug, content, image_url, author, is_published ? 1 : 0, req.params.id);
+        res.json({ success: true });
+      } catch (err) {
+        res.status(400).json({ error: "Failed to update blog" });
+      }
+    });
+
+    app.delete("/api/blogs/:id", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      db.prepare("DELETE FROM blogs WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    });
+
+    // Reviews API
+    app.get("/api/products/:id/reviews", (req, res) => {
+      const reviews = db.prepare(`
+        SELECT r.*, u.name as user_name 
+        FROM reviews r 
+        JOIN users u ON r.user_id = u.id 
+        WHERE r.product_id = ? AND r.is_approved = 1 
+        ORDER BY r.created_at DESC
+      `).all(req.params.id);
+      res.json(reviews);
+    });
+
+    app.post("/api/products/:id/reviews", authenticateToken, (req: any, res) => {
+      const { rating, comment } = req.body;
+      try {
+        db.prepare("INSERT INTO reviews (product_id, user_id, rating, comment) VALUES (?, ?, ?, ?)").run(
+          req.params.id, req.user.id, rating, comment
+        );
+        res.json({ success: true, message: "Review submitted and pending approval" });
+      } catch (err) {
+        res.status(500).json({ error: "Failed to submit review" });
+      }
+    });
+
+    app.get("/api/admin/reviews", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      const reviews = db.prepare(`
+        SELECT r.*, p.name as product_name, u.name as user_name, u.email as user_email 
+        FROM reviews r 
+        JOIN products p ON r.product_id = p.id 
+        JOIN users u ON r.user_id = u.id 
+        ORDER BY r.created_at DESC
+      `).all();
+      res.json(reviews);
+    });
+
+    app.put("/api/admin/reviews/:id/approve", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      const { is_approved } = req.body;
+      try {
+        db.prepare("UPDATE reviews SET is_approved = ? WHERE id = ?").run(is_approved ? 1 : 0, req.params.id);
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({ error: "Failed to update review status" });
+      }
+    });
+
+    app.delete("/api/admin/reviews/:id", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      try {
+        db.prepare("DELETE FROM reviews WHERE id = ?").run(req.params.id);
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({ error: "Failed to delete review" });
+      }
     });
 
     app.get("/api/products", (req, res) => {
@@ -350,21 +529,38 @@ async function startServer() {
 
     app.post("/api/auth/login", (req, res) => {
       const { email, password } = req.body;
-      const user = db.prepare("SELECT * FROM users WHERE email = ? AND password = ?").get(email, password) as any;
-      if (user) {
-        res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+      const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any;
+      if (!user) return res.status(400).json({ error: "Invalid credentials" });
+
+      if (bcrypt.compareSync(password, user.password) || password === user.password) {
+        // Fallback for non-hashed legacy passwords just in case, though we only have mock users.
+        const token = jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
       } else {
-        res.status(401).json({ error: "Invalid credentials" });
+        res.status(400).json({ error: "Invalid credentials" });
       }
     });
 
     app.post("/api/auth/register", (req, res) => {
       const { email, password, name } = req.body;
+      if (!name || !email || !password) return res.status(400).json({ error: 'All fields required' });
+
       try {
-        const result = db.prepare("INSERT INTO users (email, password, name) VALUES (?, ?, ?)").run(email, password, name);
-        res.json({ id: result.lastInsertRowid, name, email, role: 'user' });
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        const result = db.prepare("INSERT INTO users (email, password, name) VALUES (?, ?, ?)").run(email, hashedPassword, name);
+        const token = jwt.sign({ id: result.lastInsertRowid, email, name, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
+        res.json({ token, user: { id: result.lastInsertRowid, name, email, role: 'user' } });
       } catch (e) {
         res.status(400).json({ error: "Email already exists" });
+      }
+    });
+
+    app.get("/api/auth/me", authenticateToken, (req: any, res) => {
+      const user = db.prepare("SELECT id, name, email, role FROM users WHERE id = ?").get(req.user.id) as any;
+      if (user) {
+        res.json(user);
+      } else {
+        res.status(404).json({ error: "User not found" });
       }
     });
 
@@ -382,6 +578,86 @@ async function startServer() {
       }
 
       res.json({ success: true, orderId });
+    });
+
+    app.put("/api/admin/orders/:id", authenticateToken, (req: any, res) => {
+      if (req.user.role !== 'admin') return res.status(403).json({ error: "Unauthorized" });
+      const { status, tracking_id } = req.body;
+      
+      try {
+        if (status && tracking_id !== undefined) {
+          db.prepare("UPDATE orders SET status = ?, tracking_id = ? WHERE id = ?").run(status, tracking_id, req.params.id);
+        } else if (status) {
+          db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, req.params.id);
+        } else if (tracking_id !== undefined) {
+          db.prepare("UPDATE orders SET tracking_id = ? WHERE id = ?").run(tracking_id, req.params.id);
+        }
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({ error: "Failed to update order" });
+      }
+    });
+
+    // Wishlist API
+    app.get("/api/wishlist", authenticateToken, (req: any, res) => {
+      try {
+        const wishlists = db.prepare(`
+          SELECT w.product_id, p.name, p.price, p.discount_price, p.image_url 
+          FROM wishlists w 
+          JOIN products p ON w.product_id = p.id 
+          WHERE w.user_id = ?
+        `).all(req.user.id);
+        res.json(wishlists);
+      } catch (err) {
+        res.status(500).json({ error: "Failed to fetch wishlist" });
+      }
+    });
+
+    app.post("/api/wishlist", authenticateToken, (req: any, res) => {
+      try {
+        const { productId } = req.body;
+        db.prepare("INSERT OR IGNORE INTO wishlists (user_id, product_id) VALUES (?, ?)").run(req.user.id, productId);
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({ error: "Failed to add to wishlist" });
+      }
+    });
+
+    app.delete("/api/wishlist/:productId", authenticateToken, (req: any, res) => {
+      try {
+        db.prepare("DELETE FROM wishlists WHERE user_id = ? AND product_id = ?").run(req.user.id, req.params.productId);
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({ error: "Failed to remove from wishlist" });
+      }
+    });
+
+    app.get("/api/orders/user/:userId", authenticateToken, (req: any, res) => {
+      // Security: ensure users only fetch their own orders (or are admin)
+      if (req.user.id !== parseInt(req.params.userId) && req.user.role !== 'admin') {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      try {
+        const orders = db.prepare(`SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`).all(req.params.userId) as any[];
+        // Fetch items for each order
+        const getItems = db.prepare(`
+          SELECT oi.*, p.name as product_name, p.image_url 
+          FROM order_items oi 
+          JOIN products p ON oi.product_id = p.id 
+          WHERE oi.order_id = ?
+        `);
+        
+        const ordersWithItems = orders.map(order => ({
+          ...order,
+          items: getItems.all(order.id)
+        }));
+        
+        res.json(ordersWithItems);
+      } catch (err: any) {
+        // Fallback if schema doesn't match perfectly yet
+        res.json([]);
+      }
     });
 
     // Razorpay: Create Order

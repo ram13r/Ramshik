@@ -2,6 +2,7 @@ import React from 'react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Heart } from 'lucide-react';
+import { useWishlist } from '../context/WishlistContext';
 
 interface ProductCardProps {
   product: Product;
@@ -11,6 +12,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  
+  const inWishlist = isInWishlist(product.id);
 
   return (
     <div className="premium-card group cursor-pointer" onClick={onClick}>
@@ -22,8 +26,14 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           referrerPolicy="no-referrer"
         />
         <div className="absolute top-4 right-4 space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button className="p-2 bg-white rounded-full shadow-lg hover:text-brand-deep-pink transition-colors">
-            <Heart size={18} />
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              inWishlist ? removeFromWishlist(product.id) : addToWishlist(product);
+            }}
+            className={`p-2 bg-white rounded-full shadow-lg transition-colors ${inWishlist ? 'text-brand-deep-pink' : 'text-slate-400 hover:text-brand-deep-pink'}`}
+          >
+            <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
           </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">

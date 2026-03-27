@@ -3,19 +3,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Headset, X, Send, Loader2, User } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
-const SYSTEM_INSTRUCTION = `You are "Ramshika AI", a helpful and elegant customer support assistant for Ramshika, a premium Indian fashion brand. 
+const getSystemInstruction = (settings: any) => `You are "Ramshika AI", a helpful and elegant customer support assistant for ${settings.site_name || 'Ramshika'}, a premium Indian fashion brand. 
 Ramshika specializes in authentic hand-woven sarees (especially Banarasi silk and bridal wear) and exquisite artificial jewellery (like Kundan).
 
 Key Information:
 - Shipping: Free delivery on orders over ₹2000. Standard shipping takes 3-5 business days.
 - Returns: 7-day easy exchange/return policy if the product is in original condition.
-- Location: Based in Jaipur, Rajasthan.
-- Contact: support@ramshika.com or +91 98765 43210.
+- Location: ${settings.support_address_desc || 'Based in Jaipur, Rajasthan.'}
+- Contact: ${settings.support_email || 'support@ramshika.com'} or ${settings.support_phone || '+91 98765 43210'}.
 - Brand Values: Timeless elegance, authentic craftsmanship, celebrating Indian heritage.
 
 Guidelines:
 - Be polite, professional, and use a touch of warmth and elegance in your tone.
-- If you don't know the answer, suggest contacting support@ramshika.com.
+- If you don't know the answer, suggest contacting ${settings.support_email || 'support@ramshika.com'}.
 - Keep responses concise and helpful.
 - Use Indian English nuances where appropriate but remain professional.`;
 
@@ -27,8 +27,10 @@ interface Message {
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [settings, setSettings] = useState<any>({});
   
   useEffect(() => {
+    fetch('/api/settings').then(res => res.json()).then(data => setSettings(data));
     const handleOpenChat = () => setIsOpen(true);
     window.addEventListener('open-ramshika-chat', handleOpenChat);
     return () => window.removeEventListener('open-ramshika-chat', handleOpenChat);
@@ -63,7 +65,7 @@ export default function ChatWidget() {
       const chat = ai.chats.create({
         model: model,
         config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
+          systemInstruction: getSystemInstruction(settings),
         },
         history: messages.map(m => ({
           role: m.role,
@@ -77,7 +79,7 @@ export default function ChatWidget() {
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "I'm sorry, I encountered an error. Please contact our support team directly at support@ramshika.com." }]);
+      setMessages(prev => [...prev, { role: 'model', text: `I'm sorry, I encountered an error. Please contact our support team directly at ${settings.support_email || 'support@ramshika.com'}.` }]);
     } finally {
       setIsLoading(false);
     }

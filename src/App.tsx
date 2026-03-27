@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import CategoryPage from './pages/CategoryPage';
@@ -12,6 +13,8 @@ import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import StaticPage from './pages/StaticPage';
 import ContactPage from './pages/ContactPage';
+import WishlistPage from './pages/WishlistPage';
+import BlogPage from './pages/BlogPage';
 import ChatWidget from './components/ChatWidget';
 import CartDrawer from './components/CartDrawer';
 import { Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
@@ -52,9 +55,18 @@ function AppContent() {
           )}
           {currentPage === 'product-detail' && selectedProductId && <ProductDetailPage productId={selectedProductId} />}
           {currentPage === 'cart' && <CartPage onNavigate={navigate} />}
+          {currentPage === 'wishlist' && <WishlistPage onNavigate={navigate} onProductClick={openProduct} />}
           {currentPage === 'checkout' && <CheckoutPage onNavigate={navigate} />}
           {currentPage === 'login' && <LoginPage onNavigate={navigate} />}
           {currentPage === 'dashboard' && <UserDashboard onNavigate={navigate} />}
+          {currentPage === 'admin' && user?.role !== 'admin' && (
+            <div className="py-20 text-center">
+               <h2 className="text-2xl font-bold text-red-500 mb-4">Unauthorized Access</h2>
+               <p className="text-slate-500 mb-6">You do not have permission to view the admin panel.</p>
+               <button onClick={() => navigate('home')} className="pink-button">Return Home</button>
+            </div>
+          )}
+          {currentPage === 'blog' && <BlogPage onNavigate={navigate} />}
           {currentPage === 'about' && (
             <StaticPage title="About Ramshika" content="Ramshika is a premium Indian fashion brand dedicated to bringing the timeless grace of sarees and artisanal jewellery to the modern woman.">
               <p className="mb-6 text-lg"><strong className="text-brand-deep-pink font-serif text-xl">Ramshika</strong> is a premium Indian fashion brand dedicated to bringing the timeless grace of sarees and artisanal jewellery to the modern woman. Our journey started with a simple vision: to celebrate Indian craftsmanship and make it accessible to everyone.</p>
@@ -183,6 +195,7 @@ function AppContent() {
                   <li className="hover:text-white cursor-pointer" onClick={() => navigate('home')}>Home</li>
                   <li className="hover:text-white cursor-pointer" onClick={() => navigate(`category-${encodeURIComponent('Sarees')}`)}>Sarees</li>
                   <li className="hover:text-white cursor-pointer" onClick={() => navigate(`category-${encodeURIComponent('Artificial Jewellery')}`)}>Jewellery</li>
+                  <li className="hover:text-white cursor-pointer" onClick={() => navigate('blog')}>Fashion Blog</li>
                   <li className="hover:text-white cursor-pointer" onClick={() => navigate('about')}>About Us</li>
                   <li className="hover:text-white cursor-pointer" onClick={() => navigate('contact')}>Contact Us</li>
                 </ul>
@@ -225,9 +238,11 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <AppContent />
-      </CartProvider>
+      <WishlistProvider>
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
+      </WishlistProvider>
     </AuthProvider>
   );
 }

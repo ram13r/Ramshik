@@ -48,7 +48,7 @@ export default function CartDrawer({ onNavigate }: { onNavigate: (page: string) 
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100">
           <div className="flex items-baseline space-x-2">
-            <h2 className="text-xl font-serif font-bold text-slate-900">Your Cart</h2>
+            <h2 className="text-2xl font-serif font-bold text-brand-deep-pink italic">Your Cart</h2>
             <span className="text-sm text-slate-500">Items {cartCount}</span>
           </div>
           <button 
@@ -170,14 +170,14 @@ export default function CartDrawer({ onNavigate }: { onNavigate: (page: string) 
             <div className="space-y-3 pt-2">
               <button 
                 onClick={() => navigateTo('checkout')}
-                className="w-full bg-black text-white hover:bg-gray-800 font-bold py-3.5 tracking-wider uppercase text-sm transition-colors"
+                className="w-full bg-brand-deep-pink text-white hover:bg-[#8A4C50] font-bold py-3.5 tracking-wider uppercase text-sm transition-colors rounded-xl"
                 aria-label="Secure Checkout"
               >
                 CHECKOUT
               </button>
               <button 
                 onClick={() => navigateTo('cart')}
-                className="w-full bg-white text-black border border-black hover:bg-gray-50 font-bold py-3.5 tracking-wider uppercase text-sm transition-colors"
+                className="w-full bg-white text-brand-deep-pink border-2 border-brand-deep-pink hover:bg-brand-pink font-bold py-3.5 tracking-wider uppercase text-sm transition-colors rounded-xl"
               >
                 VIEW CART
               </button>
