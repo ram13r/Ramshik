@@ -127,8 +127,8 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
 
           <div className="space-y-4">
             <button 
-              onClick={() => addToCart({ ...product, quantity })}
-              className="w-full bg-[#F472B6] hover:bg-[#EC4899] text-white font-bold py-4 rounded-lg transition-all uppercase tracking-wider text-sm"
+              onClick={() => addToCart(product, quantity)}
+              className="w-full bg-[#F472B6] hover:bg-[#EC4899] text-white font-bold py-4 rounded-lg transition-all uppercase tracking-wider text-sm active:scale-95"
             >
               ADD TO CART
             </button>
