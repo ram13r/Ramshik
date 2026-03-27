@@ -581,6 +581,32 @@ async function startServer() {
       res.json({ success: true });
     });
 
+    app.get("/robots.txt", (req, res) => {
+      res.type('text/plain');
+      res.send("User-agent: *\nAllow: /\nSitemap: https://ramshika.com/sitemap.xml");
+    });
+
+    app.get("/sitemap.xml", (req, res) => {
+      const products = db.prepare("SELECT id FROM products").all() as any[];
+      const categories = db.prepare("SELECT name FROM categories").all() as any[];
+      
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://ramshika.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://ramshika.com/shop</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`;
+
+      categories.forEach(cat => {
+        xml += `\n  <url><loc>https://ramshika.com/category/${encodeURIComponent(cat.name)}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`;
+      });
+
+      products.forEach(p => {
+        xml += `\n  <url><loc>https://ramshika.com/product/${p.id}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`;
+      });
+
+      xml += `\n</urlset>`;
+      res.type('application/xml');
+      res.send(xml);
+    });
+
     if (process.env.NODE_ENV !== "production") {
       const vite = await createViteServer({
         server: { middlewareMode: true },
