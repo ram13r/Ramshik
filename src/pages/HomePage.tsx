@@ -82,8 +82,10 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
   return (
     <div className="space-y-20 pb-20">
       <Helmet>
-        <title>Ramshika | Premium Hand-Woven Sarees & Exquisite Artificial Jewellery</title>
-        <meta name="description" content="Shop the finest collection of authentic Banarasi sarees, silk bridal wear, and premium artificial jewellery at Ramshika. Timeless elegance for every occasion." />
+        <title>Ramshika | Buy Banarasi Silk Sarees & Kundan Jewellery Online India</title>
+        <meta name="description" content="Shop premium Banarasi silk sarees, bridal sarees, Kanjeevaram sarees & Kundan artificial jewellery online at Ramshika. Authentic hand-woven Indian sarees with free shipping above ₹2000. 7-day easy returns. Order now!" />
+        <meta name="keywords" content="banarasi silk saree online buy, kundan jewellery online india, bridal saree online shopping, hand woven silk saree, artificial jewellery jaipur, indian traditional saree online, wedding saree price, designer saree under 5000, ramshika" />
+        <link rel="canonical" href="https://www.ramshika.com/" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",

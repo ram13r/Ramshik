@@ -79,8 +79,10 @@ export default function ProductDetailPage({ productId }: { productId: number }) 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Helmet>
-        <title>{`${product.name} | Ramshika`}</title>
-        <meta name="description" content={product.description.substring(0, 160)} />
+        <title>{`Buy ${product.name} Online | Ramshika`}</title>
+        <meta name="description" content={`${product.description.substring(0, 140)} Shop ${product.name} online at Ramshika. Free shipping above ₹2000.`} />
+        <meta name="keywords" content={`${product.name}, ${product.category_name || 'saree'} online india, buy ${product.category_name || 'saree'} online, ramshika`} />
+        <link rel="canonical" href={`https://www.ramshika.com/product/${product.id}`} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",

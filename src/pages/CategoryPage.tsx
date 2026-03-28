@@ -81,8 +81,27 @@ export default function CategoryPage({ category, searchQuery, onProductClick }: 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Helmet>
-        <title>{`${category} | Ramshika Collection`}</title>
-        <meta name="description" content={`Explore our exclusive collection of ${category}. Handpicked premium quality products at Ramshika.`} />
+        <title>{category === 'Sarees' 
+          ? 'Buy Banarasi Silk Sarees Online | Hand-Woven Bridal Sarees | Ramshika'
+          : category === 'Artificial Jewellery'
+          ? 'Buy Kundan Jewellery Online | Artificial Gold Necklaces & Sets | Ramshika'
+          : `${category} | Buy Online India | Ramshika Collection`
+        }</title>
+        <meta name="description" content={
+          category === 'Sarees'
+            ? 'Shop authentic Banarasi silk sarees, Kanjeevaram, bridal sarees & cotton sarees online at Ramshika. Hand-woven premium sarees starting from ₹999. Free shipping above ₹2000.'
+            : category === 'Artificial Jewellery'
+            ? 'Buy Kundan jewellery sets, artificial necklaces, earrings, bangles & bridal jewellery online at Ramshika. Premium quality at affordable prices. Free shipping available.'
+            : `Explore our exclusive collection of ${category}. Premium quality products at great prices at Ramshika. Shop now with free shipping above ₹2000.`
+        } />
+        <meta name="keywords" content={
+          category === 'Sarees'
+            ? 'banarasi silk saree buy online, bridal saree india, kanjeevaram silk saree, hand woven saree price, cotton saree online, wedding saree, salwar suit, ramshika saree'
+            : category === 'Artificial Jewellery'
+            ? 'kundan jewellery set online, artificial necklace india, bridal jewellery set, gold plated necklace, earrings online india, bangles online, temple jewellery'
+            : `${category} online india, buy ${category} ramshika`
+        } />
+        <link rel="canonical" href={`https://www.ramshika.com/category-${encodeURIComponent(category)}`} />
       </Helmet>
       <div className="mb-12">
         <h1 className="text-5xl font-serif font-bold mb-2">{category}</h1>
