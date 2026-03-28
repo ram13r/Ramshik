@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Headset, X, Send, Loader2, User } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+
 
 const getSystemInstruction = (settings: any) => `You are "Ramshika AI", a helpful and elegant customer support assistant for ${settings.site_name || 'Ramshika'}, a premium Indian fashion brand. 
 Ramshika specializes in authentic hand-woven sarees (especially Banarasi silk and bridal wear) and exquisite artificial jewellery (like Kundan).
@@ -55,31 +55,32 @@ export default function ChatWidget() {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    const newMessages = [...messages, { role: 'user', text: userMessage }];
+    setMessages(newMessages as Message[]);
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const model = "gemini-3-flash-preview";
-      
-      const chat = ai.chats.create({
-        model: model,
-        config: {
-          systemInstruction: getSystemInstruction(settings),
-        },
-        history: messages.map(m => ({
-          role: m.role,
-          parts: [{ text: m.text }]
-        }))
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: newMessages,
+          systemInstruction: getSystemInstruction(settings) 
+        })
       });
-
-      const result = await chat.sendMessage({ message: userMessage });
-      const responseText = result.text || "I apologize, I'm having trouble connecting right now. Please try again or contact our support.";
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to communicate with AI");
+      }
+      
+      const responseText = data.text || "I apologize, I'm having trouble connecting right now. Please try again or contact our support.";
       
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: `I'm sorry, I encountered an error. Please contact our support team directly at ${settings.support_email || 'support@ramshika.com'}.` }]);
+      setMessages(prev => [...prev, { role: 'model', text: `${error?.message || "I'm sorry, I encountered an error. Please contact our support team directly at " + (settings.support_email || 'support@ramshika.com') + "."}` }]);
     } finally {
       setIsLoading(false);
     }

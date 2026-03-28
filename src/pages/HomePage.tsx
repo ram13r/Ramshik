@@ -164,21 +164,6 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
             <p className="text-lg text-slate-200 mb-8 max-w-lg">
               {settings.hero_subtitle || 'Discover our curated collection of hand-woven sarees and exquisite artificial jewellery designed for the modern Indian woman.'}
             </p>
-            <div className="flex space-x-4">
-              <button 
-                onClick={() => onNavigate('category-sarees')}
-                className="gold-button flex items-center space-x-2"
-              >
-                <span>Shop Sarees</span>
-                <ArrowRight size={18} />
-              </button>
-              <button 
-                onClick={() => onNavigate('category-jewellery')}
-                className="border-2 border-white text-white px-8 py-3 rounded-full font-medium hover:bg-white hover:text-black transition-all"
-              >
-                Shop Jewellery
-              </button>
-            </div>
 
             {/* Hero Social Proof */}
             <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-8 pt-8 border-t border-white/10">

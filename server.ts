@@ -9,6 +9,8 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { products as seedProducts } from "./src/data/products";
+import "dotenv/config";
+import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -340,8 +342,113 @@ async function startServer() {
     };
 
     // API Routes
+    app.get("/sitemap.xml", (req, res) => {
+      try {
+        const domain = "https://www.ramshika.com";
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Fetch all categories
+        const categories = db.prepare("SELECT name FROM categories").all() as any[];
+        // Fetch all products
+        const products = db.prepare("SELECT id FROM products").all() as any[];
+        // Fetch published blogs
+        const blogs = db.prepare("SELECT slug FROM blogs WHERE is_published = 1").all() as any[];
+        
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+        
+        // Static Pages
+        const staticPages = [
+          "/",
+          "/about",
+          "/contact",
+          "/policy/shipping",
+          "/policy/returns",
+          "/policy/privacy",
+          "/policy/terms"
+        ];
+        
+        for (const page of staticPages) {
+          xml += `  <url>\n    <loc>${domain}${page}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${page === '/' ? '1.0' : '0.8'}</priority>\n  </url>\n`;
+        }
+        
+        // Categories
+        for (const cat of categories) {
+          if (cat.name) {
+             xml += `  <url>\n    <loc>${domain}/category-${encodeURIComponent(cat.name)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+          }
+        }
+        
+        // Products
+        for (const prod of products) {
+          xml += `  <url>\n    <loc>${domain}/product/${prod.id}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+        }
+        
+        // Blogs
+        for (const blog of blogs) {
+          if (blog.slug) {
+            xml += `  <url>\n    <loc>${domain}/blog/${blog.slug}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+          }
+        }
+        
+        xml += `</urlset>`;
+        
+        res.header('Content-Type', 'application/xml');
+        res.send(xml);
+      } catch (e) {
+        console.error("Sitemap generation error:", e);
+        res.status(500).end();
+      }
+    });
+
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", timestamp: new Date().toISOString() });
+    });
+
+    app.post("/api/chat", async (req, res) => {
+      try {
+        const { messages, systemInstruction } = req.body;
+        
+        if (!messages || messages.length === 0) {
+          return res.status(400).json({ error: "No messages provided." });
+        }
+
+        const userMessage = messages[messages.length - 1].text;
+        const history = messages.slice(0, -1).map((m: any) => ({
+          role: m.role,
+          parts: [{ text: m.text }]
+        }));
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+           const msg = userMessage.toLowerCase();
+           let reply = "Namaste! For detailed queries, please contact support@ramshika.com.";
+           if (msg.includes("return") || msg.includes("exchange")) reply = "We have a 7-day easy exchange/return policy if the product is in original condition.";
+           else if (msg.includes("shipping") || msg.includes("delivery") || msg.includes("track") || msg.includes("reach")) reply = "We offer free delivery on orders over ₹2000! Standard shipping takes 3-5 business days.";
+           else if (msg.includes("location") || msg.includes("where") || msg.includes("address")) reply = "We are based in Jaipur, Rajasthan. Let us know if you plan to visit!";
+           else if (msg.includes("saree") || msg.includes("silks") || msg.includes("banarasi")) reply = "We specialize in authentic hand-woven Banarasi silk and bridal wear sarees. Please check out our latest collection in the Sarees category!";
+           else if (msg.includes("jewel") || msg.includes("kundan") || msg.includes("ring") || msg.includes("bangle")) reply = "Our exquisite artificial jewellery, including fine Kundan sets, are carefully crafted. Have a specific design in mind?";
+           else if (msg.includes("price") || msg.includes("cost") || msg.includes("offer") || msg.includes("discount")) reply = "Our prices reflect our authentic craftsmanship, and we offer free shipping above ₹599! Check the product pages for exact pricing.";
+           else if (msg.includes("hi") || msg.includes("hello") || msg.includes("hey") || msg.includes("namaste")) reply = "Namaste! Welcome to Ramshika Customer Support. How can I assist you with our beautiful collection today?";
+           else reply = "Thank you for reaching out! I'm a basic assistant for now. To assist you better, please email us directly at support@ramshika.com or browse our collections.";
+
+           return res.json({ text: reply });
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
+        const chat = ai.chats.create({
+          model: "gemini-3.0-flash",
+          config: {
+            systemInstruction: systemInstruction,
+          },
+          history: history
+        });
+        
+        const result = await chat.sendMessage({ message: userMessage });
+        res.json({ text: result.text });
+      } catch (error) {
+        console.error("Chat API Error:", error);
+        res.status(500).json({ error: "Failed to communicate with AI model." });
+      }
     });
 
     // Blog API
