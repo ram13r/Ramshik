@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, Plus, Trash2, Edit, X, Save, CheckCircle, Clock, Truck, AlertCircle, Settings as SettingsIcon, Upload, Image, Globe, MapPin, Star, Instagram, Grid, MessageSquare, BookOpen, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react';
 import { Product, Category } from '../types';
 import ImageCropper from '../components/ImageCropper';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 export default function AdminDashboard() {
   const { logout, token } = useAuth();
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
     return url;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'logo' | 'slide' | 'additional' | 'video' | 'upi_qr' | 'testimonial_avatar' | 'category_image', index?: number) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'product' | 'logo' | 'slide' | 'additional' | 'video' | 'upi_qr' | 'testimonial_avatar' | 'category_image' | 'blog_image', index?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -127,7 +129,7 @@ export default function AdminDashboard() {
 
       let aspect = 1;
       if (type === 'product' || type === 'additional') aspect = 3/4;
-      if (type === 'slide') aspect = 16/9;
+      if (type === 'slide' || type === 'blog_image') aspect = 16/9;
       if (type === 'logo') aspect = 1;
       if (type === 'category_image') aspect = 4/3;
 
@@ -163,6 +165,8 @@ export default function AdminDashboard() {
       updateTestimonial(index, 'avatar', croppedImage);
     } else if (type === 'category_image') {
       setEditingCategory({ ...editingCategory, image_url: croppedImage });
+    } else if (type === 'blog_image') {
+      setEditingBlog({ ...editingBlog, image_url: croppedImage });
     }
 
     setCroppingImage(null);
@@ -1699,8 +1703,22 @@ export default function AdminDashboard() {
                 <input type="text" value={editingBlog.slug || ''} onChange={e => setEditingBlog({ ...editingBlog, slug: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 ring-brand-gold font-mono text-sm" placeholder="auto-generated from title if empty" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cover Image URL</label>
-                <input type="url" value={editingBlog.image_url || ''} onChange={e => setEditingBlog({ ...editingBlog, image_url: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 ring-brand-gold" placeholder="https://..." />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cover Image (URL or Upload)</label>
+                <div className="flex items-center space-x-4">
+                  {editingBlog.image_url ? (
+                    <img src={editingBlog.image_url} alt="Cover" className="w-16 h-16 rounded-xl object-cover border border-slate-200" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200"><Image size={24} className="text-slate-400" /></div>
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <input type="url" value={editingBlog.image_url || ''} onChange={e => setEditingBlog({ ...editingBlog, image_url: cleanImageUrl(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ring-brand-gold" placeholder="Image URL (https://...)" />
+                    <label className="flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-bold text-slate-700 w-max">
+                      <Upload size={14} />
+                      <span>Upload Image</span>
+                      <input type="file" className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'blog_image')} />
+                    </label>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Author</label>
@@ -1708,7 +1726,14 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Content *</label>
-                <textarea required value={editingBlog.content || ''} onChange={e => setEditingBlog({ ...editingBlog, content: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 ring-brand-gold min-h-[200px] text-sm" placeholder="Write your blog post content here (supports HTML/Markdown)..." />
+                <div className="bg-white rounded-xl overflow-hidden border border-slate-200 focus-within:ring-2 ring-brand-gold">
+                  <ReactQuill 
+                    theme="snow" 
+                    value={editingBlog.content || ''} 
+                    onChange={(content) => setEditingBlog({ ...editingBlog, content })} 
+                    className="h-[250px] mb-12"
+                  />
+                </div>
               </div>
               <div className="flex items-center space-x-3">
                 <input type="checkbox" id="blogPublished" checked={!!editingBlog.is_published} onChange={e => setEditingBlog({ ...editingBlog, is_published: e.target.checked })} className="w-5 h-5 accent-brand-deep-pink" />

@@ -44,3 +44,28 @@
 .animate-slide-in-right {
   animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+/* CMS Blog Typography Styling */
+.prose {
+  @apply text-slate-700 leading-relaxed max-w-none;
+}
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  @apply font-serif font-bold text-slate-900 mt-12 mb-5;
+}
+.prose h1 { @apply text-4xl; }
+.prose h2 { @apply text-3xl border-b border-slate-100 pb-3; }
+.prose h3 { @apply text-2xl; }
+.prose p { @apply text-lg mb-6 leading-8; }
+.prose b, .prose strong { @apply font-bold text-slate-900; }
+.prose i, .prose em { @apply italic text-slate-600; }
+.prose ul { @apply list-none mb-6 space-y-3 text-lg pl-0; }
+.prose ol { @apply list-decimal mb-6 space-y-3 text-lg pl-5; }
+.prose ul li { @apply relative pl-6; }
+.prose ul li::before { 
+  content: "•"; 
+  @apply absolute left-0 text-brand-gold text-2xl leading-none top-[-2px]; 
+}
+.prose a { @apply text-brand-deep-pink font-semibold hover:underline decoration-brand-deep-pink/30 hover:decoration-brand-deep-pink underline-offset-4 transition-all; }
+.prose img { @apply rounded-3xl shadow-lg my-10 w-full object-cover border border-slate-100 aspect-video; }
+.prose blockquote { @apply border-l-4 border-brand-gold pl-6 italic text-slate-600 my-8 bg-slate-50/50 py-6 pr-6 rounded-r-2xl; }
+.prose br { @apply block content-[""] mb-2; }
