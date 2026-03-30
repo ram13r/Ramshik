@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -20,14 +20,39 @@ import CartDrawer from './components/CartDrawer';
 import { Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState(() => {
+    // On first load, read page from URL hash if present
+    const hash = window.location.hash.replace('#', '');
+    return hash || 'home';
+  });
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const { user } = useAuth();
 
-  const navigate = (page: string) => {
+  const navigate = (page: string, replace = false) => {
     setCurrentPage(page);
     window.scrollTo(0, 0);
+    // Push to browser history so back button works
+    if (replace) {
+      window.history.replaceState({ page }, '', `#${page}`);
+    } else {
+      window.history.pushState({ page }, '', `#${page}`);
+    }
   };
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const page = e.state?.page || 'home';
+      setCurrentPage(page);
+      window.scrollTo(0, 0);
+    };
+
+    // Set initial history state so back button has something to go back to
+    window.history.replaceState({ page: currentPage }, '', `#${currentPage}`);
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const openProduct = (id: number) => {
     setSelectedProductId(id);
