@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   try {
     const app = express();
-    const PORT = 3000;
+    const PORT = parseInt(process.env.PORT || "3000", 10);
     console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 
     // Serve public directory
