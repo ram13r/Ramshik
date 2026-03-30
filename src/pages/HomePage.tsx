@@ -58,17 +58,20 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
   }, [settings.hero_slides]);
 
   useEffect(() => {
-    const arrivalCats = settings.arrival_categories ? JSON.parse(settings.arrival_categories) : [
+    let arrivalCats = [
       { id: 'Sarees', label: 'SAREES' },
       { id: 'Artificial Jewellery', label: 'JEWELLERY' }
     ];
+    if (settings.arrival_categories) {
+      arrivalCats = typeof settings.arrival_categories === 'string' ? JSON.parse(settings.arrival_categories) : settings.arrival_categories;
+    }
     if (arrivalCats.length > 0 && !arrivalCats.find((c: any) => c.id === activeArrivalCategory)) {
       setActiveArrivalCategory(arrivalCats[0].id);
     }
   }, [settings.arrival_categories]);
 
   useEffect(() => {
-    fetch(`/api/products?category=${activeArrivalCategory}`)
+    fetch(`/api/products?category=${encodeURIComponent(activeArrivalCategory)}`)
       .then(res => res.json())
       .then(data => setNewArrivals(data.slice(0, 4)));
   }, [activeArrivalCategory]);
@@ -254,7 +257,7 @@ export default function HomePage({ onNavigate, onProductClick }: { onNavigate: (
         <div className="text-center mb-12">
           <h2 className="text-5xl font-serif font-bold mb-8">New Arrivals</h2>
           <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {(settings.arrival_categories ? JSON.parse(settings.arrival_categories) : [
+            {(settings.arrival_categories ? (typeof settings.arrival_categories === 'string' ? JSON.parse(settings.arrival_categories) : settings.arrival_categories) : [
               { id: 'Sarees', label: 'SAREES' },
               { id: 'Artificial Jewellery', label: 'JEWELLERY' }
             ]).map((cat: any) => (
